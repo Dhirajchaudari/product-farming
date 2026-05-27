@@ -1,0 +1,123 @@
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   DEV_VM_HOST, DEV_VM_USER, DEV_VM_SSH_PRIVATE_KEY
+#   ATHENA_BACKEND_ENV_DEV_B64, ATHENA_FRONTEND_ENV_DEV_B64, ATHENA_SHELL_ENV_DEV_B64
+# Each *_B64 = single-line base64 of local .env.dev.backend | .env.dev.frontend | .env.dev.shell
+#   Linux/WSL: base64 -w0 < .env.dev.backend
+# Workflow decodes them on the VM into backend.env / frontend.env / shell.env.
+
+name: Deploy dev (AskAthena)
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-athena-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ATHENA_BACKEND_ENV_DEV_B64: ${{ secrets.ATHENA_BACKEND_ENV_DEV_B64 }}
+      ATHENA_FRONTEND_ENV_DEV_B64: ${{ secrets.ATHENA_FRONTEND_ENV_DEV_B64 }}
+      ATHENA_SHELL_ENV_DEV_B64: ${{ secrets.ATHENA_SHELL_ENV_DEV_B64 }}
+      ATHENA_DEV_HEALTH_URL: ${{ vars.ATHENA_DEV_HEALTH_URL }}
+    steps:
+      - name: Deploy over SSH (split env + compose auditsense)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEV_VM_HOST }}
+          username: ${{ secrets.DEV_VM_USER }}
+          key: ${{ secrets.DEV_VM_SSH_PRIVATE_KEY }}
+          command_timeout: 45m
+          envs: ATHENA_BACKEND_ENV_DEV_B64,ATHENA_FRONTEND_ENV_DEV_B64,ATHENA_SHELL_ENV_DEV_B64,ATHENA_DEV_HEALTH_URL
+          script_stop: false
+          script: |
+            set -euo pipefail
+            BASE=/home/azureuser/apps/AskAthena
+            cd "$BASE"
+            BRANCH='${{ github.ref_name }}'
+            git fetch origin
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            write_b64_file() {
+              var_name="$1"
+              output_file="$2"
+              value="${!var_name:-}"
+              if [ -n "$value" ]; then
+                echo "$value" | base64 -d > "$output_file"
+                chmod 600 "$output_file"
+                echo "Wrote $output_file"
+              elif [ -f "$output_file" ]; then
+                echo "Using existing $output_file on VM"
+              else
+                echo "ERROR: Missing secret for $var_name and $output_file not found" >&2
+                exit 1
+              fi
+            }
+
+            write_b64_file ATHENA_BACKEND_ENV_DEV_B64 backend.env
+            write_b64_file ATHENA_FRONTEND_ENV_DEV_B64 frontend.env
+            write_b64_file ATHENA_SHELL_ENV_DEV_B64 shell.env
+            sed -i 's/\r$//' backend.env frontend.env shell.env
+
+            set -a
+            . ./backend.env
+            . ./frontend.env
+            . ./shell.env
+            set +a
+
+            : "${DATABASE_URL:?DATABASE_URL missing in backend env}"
+            : "${JWT_SECRET:?JWT_SECRET missing in backend env}"
+            : "${ENCRYPTION_KEY:?ENCRYPTION_KEY missing in backend env}"
+            : "${VITE_API_URL:?VITE_API_URL missing in frontend env}"
+            : "${VITE_PARENT_URL:?VITE_PARENT_URL missing in frontend env}"
+            : "${SHELL_FRONTEND_URL:?SHELL_FRONTEND_URL missing in shell env}"
+            : "${SHELL_STATIC_JWT_TOKEN:?SHELL_STATIC_JWT_TOKEN missing in shell env}"
+
+            export ATHENA_STATE_FILE=.deploy/dev-active-slot
+            export ATHENA_BLUE_BACKEND_PORT=8081
+            export ATHENA_BLUE_FRONTEND_PORT=8082
+            export ATHENA_BLUE_SHELL_PORT=8083
+            export ATHENA_GREEN_BACKEND_PORT=18181
+            export ATHENA_GREEN_FRONTEND_PORT=18182
+            export ATHENA_GREEN_SHELL_PORT=18183
+            export ATHENA_BLUE_BACKEND_NAME=athena-dev-backend-blue
+            export ATHENA_BLUE_FRONTEND_NAME=athena-dev-frontend-blue
+            export ATHENA_BLUE_SHELL_NAME=athena-dev-shell-blue
+            export ATHENA_GREEN_BACKEND_NAME=athena-dev-backend-green
+            export ATHENA_GREEN_FRONTEND_NAME=athena-dev-frontend-green
+            export ATHENA_GREEN_SHELL_NAME=athena-dev-shell-green
+            export ATHENA_BLUE_PROJECT=athena-dev-blue
+            export ATHENA_GREEN_PROJECT=athena-dev-green
+            export ATHENA_API_UPSTREAM_FILE=/etc/nginx/snippets/athena-dev-api-active.conf
+            export ATHENA_FRONTEND_UPSTREAM_FILE=/etc/nginx/snippets/athena-dev-frontend-active.conf
+            export ATHENA_SHELL_UPSTREAM_FILE=/etc/nginx/snippets/athena-dev-shell-active.conf
+            export ATHENA_API_UPSTREAM_NAME=athena_dev_api_active
+            export ATHENA_FRONTEND_UPSTREAM_NAME=athena_dev_frontend_active
+            export ATHENA_SHELL_UPSTREAM_NAME=athena_dev_shell_active
+            export ATHENA_PUBLIC_HEALTH_URL="${ATHENA_DEV_HEALTH_URL:-https://api-athena-dev.auditsense.ai/health}"
+            export ATHENA_PUBLIC_HEALTH_SUCCESS_COUNT=3
+            export ATHENA_DRAIN_SECONDS=20
+
+            bash scripts/deploy-bluegreen.sh
+
+            HEALTH_URL="$ATHENA_PUBLIC_HEALTH_URL"
+            ok=0
+            for i in $(seq 1 60); do
+              if curl -sfS "$HEALTH_URL" >/dev/null 2>&1; then
+                ok=1
+                echo "Health OK via ${HEALTH_URL} (attempt $i)"
+                break
+              fi
+              sleep 2
+            done
+            if [ "$ok" != 1 ]; then
+              echo "ERROR: health check failed for ${HEALTH_URL}" >&2
+              exit 1
+            fi
+
+            docker image prune -f || true
