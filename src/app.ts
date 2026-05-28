@@ -52,7 +52,11 @@ export function buildApp(): FastifyInstance {
   if (env.nodeEnv !== "test") {
     app.addHook("onReady", async () => {
       const queueStatus = await initializeQueues();
-      app.log.info({ queueStatus }, "Queues initialized");
+      if (queueStatus.initialized) {
+        app.log.info({ queueStatus }, "Queues initialized");
+      } else {
+        app.log.warn({ queueStatus }, "Queues unavailable; continuing without workers");
+      }
     });
 
     app.addHook("onClose", async () => {

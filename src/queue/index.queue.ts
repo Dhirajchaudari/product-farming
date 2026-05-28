@@ -8,6 +8,7 @@ const AUTH_AUDIT_QUEUE_NAME = "auth-audit";
 export interface QueueBootstrapResult {
   initialized: boolean;
   queues: string[];
+  error?: string;
 }
 
 let authAuditQueue: Queue<AuthAuditJobData> | null = null;
@@ -33,14 +34,30 @@ export async function initializeQueues(): Promise<QueueBootstrapResult> {
     };
   }
 
-  const connection = getBullConnection();
-  authAuditQueue = new Queue<AuthAuditJobData>(AUTH_AUDIT_QUEUE_NAME, { connection });
-  authAuditWorker = new Worker<AuthAuditJobData>(AUTH_AUDIT_QUEUE_NAME, processAuthAuditJob, { connection });
+  try {
+    const connection = getBullConnection();
+    authAuditQueue = new Queue<AuthAuditJobData>(AUTH_AUDIT_QUEUE_NAME, { connection });
+    authAuditWorker = new Worker<AuthAuditJobData>(AUTH_AUDIT_QUEUE_NAME, processAuthAuditJob, { connection });
 
-  return {
-    initialized: true,
-    queues: [AUTH_AUDIT_QUEUE_NAME]
-  };
+    authAuditWorker.on("error", (error) => {
+      console.error("[auth-audit-worker] error", error);
+    });
+
+    return {
+      initialized: true,
+      queues: [AUTH_AUDIT_QUEUE_NAME]
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown queue bootstrap error";
+    console.error("[queue] bootstrap failed", error);
+    authAuditQueue = null;
+    authAuditWorker = null;
+    return {
+      initialized: false,
+      queues: [],
+      error: message
+    };
+  }
 }
 
 export function getAuthAuditQueue(): Queue<AuthAuditJobData> {
