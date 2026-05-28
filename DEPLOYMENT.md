@@ -24,6 +24,34 @@ Generate the env secret locally:
 base64 -w0 < .env.production
 ```
 
+## Database URL (fix `Can't reach database server at base`)
+
+This almost always means **`DATABASE_URL` in `.env.production` / `SERVER_ENV_B64` is malformed**.
+
+Common causes:
+
+1. **Unencoded `@` in the password** — e.g. `PayrollPilot@123` must be `PayrollPilot%40123` in the URL.
+2. **Wrong host** — hostname must be your Postgres host (Neon, RDS, VM IP), not `base` or a placeholder.
+3. **Missing SSL** — Neon/Supabase need `?sslmode=require` (added automatically for known hosts when using a valid URL).
+
+Preferred format:
+
+```env
+DATABASE_URL=postgresql://USER:URL_ENCODED_PASSWORD@HOST:5432/DATABASE?sslmode=require
+```
+
+Alternative (avoids encoding issues in one long URL):
+
+```env
+DATABASE_HOST=your-db-host.example.com
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=plain-password-here
+DATABASE_NAME=product_farming
+```
+
+After updating secrets, redeploy. `/health` returns **503** when the database is unreachable so deploy fails fast with container logs.
+
 ## VM prerequisites
 
 - Docker installed and running

@@ -37,9 +37,16 @@ health_ok() {
   curl -fsS --connect-timeout 3 "http://127.0.0.1:${port}/health" >/dev/null 2>&1
 }
 
+show_container_logs() {
+  local container_name="$1"
+  echo "=== Last 80 lines of ${container_name} logs ===" >&2
+  docker logs --tail 80 "$container_name" 2>&1 || true
+}
+
 wait_for_health() {
   local port="$1"
-  local attempts="${2:-60}"
+  local container_name="$2"
+  local attempts="${3:-60}"
   local i
   for i in $(seq 1 "$attempts"); do
     if health_ok "$port"; then
@@ -49,6 +56,7 @@ wait_for_health() {
     sleep 2
   done
   echo "ERROR: local health failed on 127.0.0.1:${port}" >&2
+  show_container_logs "$container_name"
   return 1
 }
 
@@ -165,7 +173,7 @@ fi
 echo "=== Product-farming blue/green deploy: active=${ACTIVE_SLOT}, next=${INACTIVE_SLOT} ==="
 build_image
 run_container "$INACTIVE_CONTAINER" "$INACTIVE_PORT"
-wait_for_health "$INACTIVE_PORT" 75
+wait_for_health "$INACTIVE_PORT" "$INACTIVE_CONTAINER" 75
 write_upstream "$INACTIVE_PORT"
 
 if [ -n "$PUBLIC_HEALTH_URL" ]; then

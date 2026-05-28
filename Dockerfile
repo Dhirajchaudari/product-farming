@@ -20,5 +20,7 @@ RUN npm ci --omit=dev --no-audit --no-fund \
 RUN npm run prisma:generate
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/utils/email/templates ./dist/src/utils/email/templates
-EXPOSE 3000
-CMD ["node", "dist/src/server.js"]
+EXPOSE 8000
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+CMD ["/docker-entrypoint.sh"]

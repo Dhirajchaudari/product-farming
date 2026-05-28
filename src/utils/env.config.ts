@@ -1,12 +1,33 @@
 import dotenv from "dotenv";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
-dotenv.config();
+import { resolveDatabaseUrl, type ResolvedDatabaseUrl } from "./database-url.js";
+
+function loadEnvFiles(): void {
+  const cwd = process.cwd();
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  const candidates =
+    nodeEnv === "production"
+      ? [".env.production", ".env"]
+      : [".env.local", ".env"];
+
+  for (const file of candidates) {
+    const path = resolve(cwd, file);
+    if (existsSync(path)) {
+      dotenv.config({ path });
+    }
+  }
+}
+
+loadEnvFiles();
 
 export interface EnvConfig {
   nodeEnv: string;
   host: string;
   port: number;
   databaseUrl: string;
+  database: ResolvedDatabaseUrl;
   redisUrl: string;
   jwtPublicKey: string;
   jwtPrivateKey: string;
@@ -63,11 +84,14 @@ export function getEnvConfig(): EnvConfig {
     return cachedConfig;
   }
 
+  const database = resolveDatabaseUrl();
+
   cachedConfig = {
     nodeEnv: process.env.NODE_ENV ?? "development",
     host: process.env.HOST ?? "0.0.0.0",
     port: Number(process.env.PORT ?? "8000"),
-    databaseUrl: getRequiredEnv("DATABASE_URL"),
+    databaseUrl: database.connectionString,
+    database,
     redisUrl: getRequiredEnv("REDIS_URL"),
     jwtPublicKey: decodeBase64Key(getRequiredEnv("PUBLIC_KEY")),
     jwtPrivateKey: decodeBase64Key(getRequiredEnv("PRIVATE_KEY")),

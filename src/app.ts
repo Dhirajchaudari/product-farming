@@ -11,6 +11,7 @@ import { AuthResolver, resolveSessionUserFromCookie } from "./modules/auth/resol
 import { EmployeeResolver } from "./modules/employee/resolvers/employee.resolver.js";
 import { PortalResolver } from "./modules/employee/resolvers/portal.resolver.js";
 import { closeQueues, initializeQueues } from "./queue/index.queue.js";
+import { checkDatabaseConnection } from "./utils/prisma.connection.js";
 import { getEnvConfig } from "./utils/env.config.js";
 
 export function buildApp(): FastifyInstance {
@@ -19,12 +20,29 @@ export function buildApp(): FastifyInstance {
     logger: true
   });
 
-  app.get("/health", async () => {
-    return {
-      status: "ok",
+  app.get("/health", async (_request, reply) => {
+    const base = {
       service: "product-farming-server",
       timestamp: new Date().toISOString()
     };
+
+    if (env.nodeEnv === "test") {
+      return { status: "ok", db: "skipped", ...base };
+    }
+
+    try {
+      await checkDatabaseConnection();
+      return { status: "ok", db: "ok", ...base };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Database unreachable";
+      app.log.error({ err: error }, "Health check database probe failed");
+      return reply.code(503).send({
+        status: "degraded",
+        db: "error",
+        message,
+        ...base
+      });
+    }
   });
 
   void app.register(cors, {
@@ -68,6 +86,17 @@ export function buildApp(): FastifyInstance {
 
   if (env.nodeEnv !== "test") {
     app.addHook("onReady", async () => {
+      try {
+        await checkDatabaseConnection();
+        app.log.info(
+          { host: env.database.host, database: env.database.database },
+          "Database connection verified"
+        );
+      } catch (error) {
+        app.log.error({ err: error }, "Database connection failed at startup");
+        throw error;
+      }
+
       const queueStatus = await initializeQueues();
       if (queueStatus.initialized) {
         app.log.info({ queueStatus }, "Queues initialized");
@@ -78,6 +107,8 @@ export function buildApp(): FastifyInstance {
 
     app.addHook("onClose", async () => {
       await closeQueues();
+      const { disconnectPrisma } = await import("./utils/prisma.connection.js");
+      await disconnectPrisma();
     });
   }
 
