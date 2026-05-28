@@ -7,6 +7,7 @@ import { buildSchemaSync } from "type-graphql";
 
 import { AUTH_SESSION_COOKIE } from "./modules/auth/auth.constants.js";
 import { AuthResolver, resolveSessionUserFromCookie } from "./modules/auth/resolvers/auth.resolver.js";
+import { closeQueues, initializeQueues } from "./queue/index.queue.js";
 import { getEnvConfig } from "./utils/env.config.js";
 
 export function buildApp(): FastifyInstance {
@@ -46,6 +47,17 @@ export function buildApp(): FastifyInstance {
       };
     }
   });
+
+  if (env.nodeEnv !== "test") {
+    app.addHook("onReady", async () => {
+      const queueStatus = await initializeQueues();
+      app.log.info({ queueStatus }, "Queues initialized");
+    });
+
+    app.addHook("onClose", async () => {
+      await closeQueues();
+    });
+  }
 
   return app;
 }

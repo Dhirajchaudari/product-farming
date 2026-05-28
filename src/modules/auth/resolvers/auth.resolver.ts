@@ -3,6 +3,7 @@ import { Arg, Ctx, Mutation, Query, Resolver, UseMiddleware } from "type-graphql
 
 import { isAuthenticated } from "../../../middlewares/authentication.js";
 import { isAdmin } from "../../../middlewares/authorization.js";
+import { enqueueAuthAudit } from "../../../queue/index.queue.js";
 import type Context from "../../../types/context.type.js";
 import { getEnvConfig } from "../../../utils/env.config.js";
 import { getRedisClient } from "../../../utils/redis.connection.js";
@@ -52,11 +53,25 @@ export class AuthResolver {
       sameSite: "lax",
       secure: env.nodeEnv === "production"
     });
+    await enqueueAuthAudit("auth-login", {
+      event: "login",
+      userId: session.user.id,
+      email: session.user.email,
+      at: new Date().toISOString()
+    });
     return session.user;
   }
 
   @Mutation(() => Boolean)
   public async logout(@Ctx() context: Context): Promise<boolean> {
+    if (context.sessionUser) {
+      await enqueueAuthAudit("auth-logout", {
+        event: "logout",
+        userId: context.sessionUser.id,
+        email: context.sessionUser.email,
+        at: new Date().toISOString()
+      });
+    }
     await authService.destroySession(context.sessionId);
     const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
       ?? (context as unknown as { appReply?: FastifyReply }).appReply;
