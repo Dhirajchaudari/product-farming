@@ -16,7 +16,13 @@ export interface EnvConfig {
   corsOrigins: string[];
   otpLength: number;
   otpTtlMinutes: number;
+  employeeInviteOtpTtlMinutes: number;
   passwordMinLength: number;
+  frontendBaseUrl: string;
+  setPasswordPath: string;
+  cloudinaryCloudName?: string;
+  cloudinaryApiKey?: string;
+  cloudinaryApiSecret?: string;
 }
 
 let cachedConfig: EnvConfig | null = null;
@@ -48,6 +54,10 @@ function parseCorsOrigins(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+export function resetEnvConfigForTests(): void {
+  cachedConfig = null;
+}
+
 export function getEnvConfig(): EnvConfig {
   if (cachedConfig) {
     return cachedConfig;
@@ -67,7 +77,13 @@ export function getEnvConfig(): EnvConfig {
     corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
     otpLength: Number(process.env.OTP_LENGTH ?? "6"),
     otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES ?? "10"),
-    passwordMinLength: Number(process.env.PASSWORD_MIN_LENGTH ?? "8")
+    employeeInviteOtpTtlMinutes: Number(process.env.EMPLOYEE_INVITE_OTP_TTL_MINUTES ?? "10080"),
+    passwordMinLength: Number(process.env.PASSWORD_MIN_LENGTH ?? "8"),
+    frontendBaseUrl: process.env.FRONTEND_BASE_URL ?? "http://localhost:3000",
+    setPasswordPath: process.env.SET_PASSWORD_PATH ?? "/auth/set-password",
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET
   };
 
   return cachedConfig;

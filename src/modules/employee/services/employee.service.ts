@@ -7,7 +7,9 @@ import type { CreateEmployeeInput, UpdateEmployeeInput } from "../schema/employe
 
 export class EmployeeService {
   private readonly employees = new Map<string, EmployeeRecord>();
-  private readonly useMemoryStore = getEnvConfig().nodeEnv === "test";
+  private get useMemoryStore(): boolean {
+    return process.env.VITEST === "true" || getEnvConfig().nodeEnv === "test";
+  }
 
   private normalize(value: string): string {
     return value.trim().toLowerCase();
@@ -49,6 +51,10 @@ export class EmployeeService {
       createdAt: (raw.createdAt instanceof Date ? raw.createdAt : new Date(raw.createdAt)).toISOString(),
       updatedAt: (raw.updatedAt instanceof Date ? raw.updatedAt : new Date(raw.updatedAt)).toISOString()
     };
+  }
+
+  public clearMemoryStoreForTests(): void {
+    this.employees.clear();
   }
 
   private generateEmployeeCode(): string {
@@ -180,6 +186,14 @@ export class EmployeeService {
       return this.employees.get(id) ?? null;
     }
     const row = await getPrismaClient().employee.findUnique({ where: { id } });
+    return row ? this.mapEmployeeRecord(row as never) : null;
+  }
+
+  public async getByEmail(email: string): Promise<EmployeeRecord | null> {
+    if (this.useMemoryStore) {
+      return Array.from(this.employees.values()).find((row) => row.email === email) ?? null;
+    }
+    const row = await getPrismaClient().employee.findUnique({ where: { email } });
     return row ? this.mapEmployeeRecord(row as never) : null;
   }
 

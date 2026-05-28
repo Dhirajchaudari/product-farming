@@ -16,6 +16,7 @@ export interface CommunicationEmailJobDataPayload {
   employeeCode?: string;
   jobTitle?: string;
   department?: string;
+  setupPasswordUrl?: string;
   otpCode?: string;
   [key: string]: unknown;
 }
@@ -45,6 +46,7 @@ export async function processCommunicationEmail(
         employeeCode?: string;
         jobTitle?: string;
         department?: string;
+        setupPasswordUrl?: string;
         subject?: string;
         html?: string;
       });

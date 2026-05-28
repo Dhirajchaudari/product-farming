@@ -52,6 +52,45 @@ export class EmployeeType {
 }
 
 @ObjectType()
+export class PayslipType {
+  @Field(() => ID)
+  public id!: string;
+
+  @Field(() => String)
+  public employeeId!: string;
+
+  @Field(() => String)
+  public periodLabel!: string;
+
+  @Field(() => Number)
+  public periodMonth!: number;
+
+  @Field(() => Number)
+  public periodYear!: number;
+
+  @Field(() => String)
+  public cloudinaryPublicId!: string;
+
+  @Field(() => String)
+  public cloudinaryUrl!: string;
+
+  @Field(() => String)
+  public fileName!: string;
+
+  @Field(() => String)
+  public createdAt!: string;
+}
+
+@ObjectType()
+export class PayslipDownloadUrlType {
+  @Field(() => String)
+  public url!: string;
+
+  @Field(() => String)
+  public fileName!: string;
+}
+
+@ObjectType()
 export class SalaryInsightsType {
   @Field(() => String)
   public country!: string;

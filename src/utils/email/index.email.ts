@@ -88,7 +88,13 @@ export async function sendEmailVerificationOtp(data: BaseEmailPayload & { otpCod
 }
 
 export async function sendEmployeeWelcomeEmail(
-  data: BaseEmailPayload & { fullName?: string; employeeCode?: string; jobTitle?: string; department?: string }
+  data: BaseEmailPayload & {
+    fullName?: string;
+    employeeCode?: string;
+    jobTitle?: string;
+    department?: string;
+    setupPasswordUrl?: string;
+  }
 ): Promise<{ success: boolean; skipped?: boolean; reason?: string }> {
   return sendEmail({
     ...data,

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { FastifyReply } from "fastify";
 import { Arg, Ctx, Mutation, Query, Resolver, UseMiddleware } from "type-graphql";
 
@@ -15,7 +17,18 @@ import { AuthService } from "../services/auth.service.js";
 import { AuthOperationResultType, SessionUserType } from "../schema/auth.schema.js";
 
 const env = getEnvConfig();
-const authService = new AuthService(env.nodeEnv === "test" ? null : getRedisClient());
+const testAuthService = new AuthService(null);
+let redisAuthService: AuthService | null = null;
+
+function getAuthService(): AuthService {
+  if (process.env.VITEST === "true" || getEnvConfig().nodeEnv === "test") {
+    return testAuthService;
+  }
+  if (!redisAuthService) {
+    redisAuthService = new AuthService(getRedisClient());
+  }
+  return redisAuthService;
+}
 
 @Resolver(() => SessionUserType)
 export class AuthResolver {
@@ -42,7 +55,7 @@ export class AuthResolver {
     @Arg("email", () => String) email: string,
     @Arg("role", () => UserRoleEnum) role: UserRoleEnum
   ) {
-    const session = { ...(await authService.createSession(email, role)), firstLogin: false };
+    const session = { ...(await getAuthService().createSession(randomUUID(), email, role)), firstLogin: false };
     const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
       ?? (context as unknown as { appReply?: FastifyReply }).appReply;
     if (!reply) {
@@ -78,7 +91,7 @@ export class AuthResolver {
     @Arg("email", () => String) email: string,
     @Arg("password", () => String) password: string
   ): Promise<SessionUser> {
-    const session = await authService.loginWithPassword(email, password);
+    const session = await getAuthService().loginWithPassword(email, password);
     const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
       ?? (context as unknown as { appReply?: FastifyReply }).appReply;
     if (!reply) {
@@ -113,7 +126,7 @@ export class AuthResolver {
     @Arg("email", () => String) email: string,
     @Arg("role", () => UserRoleEnum, { nullable: true }) role?: UserRoleEnum
   ): Promise<AuthOperationResultType> {
-    const otpCode = await authService.requestRegistrationOtp(
+    const otpCode = await getAuthService().requestRegistrationOtp(
       email,
       role ?? UserRoleEnum.hr_manager,
       env.otpLength,
@@ -139,7 +152,7 @@ export class AuthResolver {
     @Arg("email", () => String) email: string,
     @Arg("otp", () => String) otp: string
   ): Promise<AuthOperationResultType> {
-    const valid = await authService.verifyRegistrationOtp(email, otp);
+    const valid = await getAuthService().verifyRegistrationOtp(email, otp);
     return {
       success: valid,
       message: valid ? "OTP_VALID" : "OTP_INVALID_OR_EXPIRED"
@@ -159,7 +172,7 @@ export class AuthResolver {
       };
     }
 
-    const success = await authService.setupPassword(email, otp, password);
+    const success = await getAuthService().setupPassword(email, otp, password);
     return {
       success,
       message: success ? "PASSWORD_SET" : "OTP_INVALID_OR_EXPIRED"
@@ -176,7 +189,7 @@ export class AuthResolver {
         at: new Date().toISOString()
       });
     }
-    await authService.destroySession(context.sessionId);
+    await getAuthService().destroySession(context.sessionId);
     const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
       ?? (context as unknown as { appReply?: FastifyReply }).appReply;
     if (reply) {
@@ -187,5 +200,9 @@ export class AuthResolver {
 }
 
 export async function resolveSessionUserFromCookie(sessionId: string | undefined): Promise<SessionUser | null> {
-  return authService.resolveSession(sessionId);
+  return getAuthService().resolveSession(sessionId);
+}
+
+export function resetAuthStateForTests(): void {
+  testAuthService.clearSessionsForTests();
 }

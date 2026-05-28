@@ -10,7 +10,7 @@ describe("auth module scaffold", () => {
 
   it("creates and resolves a session user", async () => {
     const authService = new AuthService();
-    const session = await authService.createSession("hr@product-farming.test", "hr_manager");
+    const session = await authService.createSession("user-1", "hr@product-farming.test", "hr_manager");
     const user = await authService.resolveSession(session.sessionId);
 
     expect(user?.email).toBe("hr@product-farming.test");

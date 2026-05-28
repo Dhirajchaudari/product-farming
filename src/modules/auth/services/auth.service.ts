@@ -62,13 +62,51 @@ export class AuthService {
     return Boolean(record);
   }
 
+  public async requestEmployeeInviteOtp(
+    email: string,
+    employeeId: string,
+    otpLength: number,
+    otpTtlMinutes: number
+  ): Promise<string> {
+    const code = this.generateOtpCode(otpLength);
+    const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
+    const prisma = getPrismaClient();
+
+    await prisma.authUser.upsert({
+      where: { email },
+      create: {
+        email,
+        role: "employee",
+        employeeId,
+        isEmailVerified: false,
+        firstLogin: true
+      },
+      update: {
+        role: "employee",
+        employeeId
+      }
+    });
+
+    await prisma.emailOtp.create({
+      data: {
+        email,
+        code,
+        role: "employee",
+        purpose: "employee_invite",
+        expiresAt
+      }
+    });
+
+    return code;
+  }
+
   public async setupPassword(email: string, otp: string, password: string): Promise<boolean> {
     const prisma = getPrismaClient();
     const record = await prisma.emailOtp.findFirst({
       where: {
         email,
         code: otp,
-        purpose: "registration",
+        purpose: { in: ["registration", "employee_invite"] },
         consumedAt: null,
         expiresAt: { gt: new Date() }
       },
@@ -113,7 +151,7 @@ export class AuthService {
       throw new Error("INVALID_CREDENTIALS");
     }
 
-    const session = await this.createSession(email, authUser.role as UserRole);
+    const session = await this.createSession(authUser.id, email, authUser.role as UserRole);
     await prisma.authUser.update({
       where: { email },
       data: {
@@ -127,9 +165,13 @@ export class AuthService {
     };
   }
 
-  public async createSession(email: string, role: UserRole): Promise<{ sessionId: string; user: SessionUser }> {
+  public async createSession(
+    userId: string,
+    email: string,
+    role: UserRole
+  ): Promise<{ sessionId: string; user: SessionUser }> {
     const user: SessionUser = {
-      id: randomUUID(),
+      id: userId,
       email,
       role
     };
@@ -235,6 +277,10 @@ export class AuthService {
     } catch (error) {
       this.logRedisWarning("del", error);
     }
+  }
+
+  public clearSessionsForTests(): void {
+    this.memoryStore.clear();
   }
 
   private logRedisWarning(operation: string, error: unknown): void {
