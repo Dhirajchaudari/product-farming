@@ -48,14 +48,23 @@ wait_for_health() {
   local container_name="$2"
   local attempts="${3:-60}"
   local i
+  echo "Waiting for container ${container_name} on 127.0.0.1:${port} (migrate + server startup)..."
   for i in $(seq 1 "$attempts"); do
     if health_ok "$port"; then
       echo "Local health OK on 127.0.0.1:${port} (attempt ${i})"
       return 0
     fi
+    if [ $((i % 5)) -eq 0 ]; then
+      echo "Still waiting for health... attempt ${i}/${attempts} (~$((i * 2))s)"
+      if ! docker ps --format '{{.Names}}' | grep -qx "$container_name"; then
+        echo "ERROR: container ${container_name} is not running" >&2
+        show_container_logs "$container_name"
+        return 1
+      fi
+    fi
     sleep 2
   done
-  echo "ERROR: local health failed on 127.0.0.1:${port}" >&2
+  echo "ERROR: local health failed on 127.0.0.1:${port} after ${attempts} attempts" >&2
   show_container_logs "$container_name"
   return 1
 }
@@ -171,7 +180,9 @@ else
 fi
 
 echo "=== Product-farming blue/green deploy: active=${ACTIVE_SLOT}, next=${INACTIVE_SLOT} ==="
+echo "Building Docker image ${IMAGE_NAME}:${IMAGE_TAG}..."
 build_image
+echo "Starting container ${INACTIVE_CONTAINER} on port ${INACTIVE_PORT}..."
 run_container "$INACTIVE_CONTAINER" "$INACTIVE_PORT"
 wait_for_health "$INACTIVE_PORT" "$INACTIVE_CONTAINER" 75
 write_upstream "$INACTIVE_PORT"
