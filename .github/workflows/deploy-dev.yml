@@ -29,9 +29,6 @@ jobs:
           script_stop: false
           script: |
             set -euo pipefail
-            whoami
-            id
-            sudo -n true
             BASE="${SERVER_DEPLOY_BASE:-/home/ubuntu/apps/product-farming/server}"
             mkdir -p "$BASE"
             cd "$BASE"
@@ -59,7 +56,7 @@ jobs:
             export PF_GREEN_PORT=28081
             export PF_BLUE_CONTAINER=product-farming-api-blue
             export PF_GREEN_CONTAINER=product-farming-api-green
-            export PF_NGINX_UPSTREAM_FILE=/etc/nginx/snippets/product-farming-api-active.conf
+            export PF_NGINX_UPSTREAM_FILE=/etc/nginx/conf.d/product-farming-api-upstream.conf
             export PF_NGINX_UPSTREAM_NAME=product_farming_api_active
             export PF_DRAIN_SECONDS=20
 

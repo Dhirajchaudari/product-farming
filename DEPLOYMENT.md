@@ -28,8 +28,8 @@ base64 -w0 < .env.production
 
 - Docker installed and running
 - Nginx installed
-- Nginx config includes snippet file:
-  - `/etc/nginx/snippets/product-farming-api-active.conf`
+- Nginx config includes upstream file:
+  - `/etc/nginx/conf.d/product-farming-api-upstream.conf`
   - upstream name `product_farming_api_active`
 - Passwordless sudo for `nginx -t`, `systemctl reload nginx`, and writing snippet files
 
