@@ -50,17 +50,21 @@ async function sendEmail(payload: BaseEmailPayload): Promise<{ success: boolean;
     return { success: true, skipped: true, reason: "SMTP_NOT_CONFIGURED" };
   }
 
-  const htmlContent = payload.html ?? renderTemplate("user-onboarding", payload as unknown as Record<string, unknown>);
-
-  await sender.sendMail({
-    from: env.emailFromAddress ?? env.smtpUser ?? "noreply@productfarming.app",
-    to: payload.email,
-    subject: payload.subject ?? "Product Farming Notification",
-    html: htmlContent,
-    text: payload.subject ?? "Product Farming Notification"
-  });
-
-  return { success: true };
+  try {
+    const htmlContent = payload.html ?? renderTemplate("user-onboarding", payload as unknown as Record<string, unknown>);
+    await sender.sendMail({
+      from: env.emailFromAddress ?? env.smtpUser ?? "noreply@productfarming.app",
+      to: payload.email,
+      subject: payload.subject ?? "Product Farming Notification",
+      html: htmlContent,
+      text: payload.subject ?? "Product Farming Notification"
+    });
+    return { success: true };
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    console.error("[email] send failed", details);
+    return { success: false, reason: details };
+  }
 }
 
 function defaultHtml(title: string, data: unknown): string {
@@ -80,5 +84,15 @@ export async function sendEmailVerificationOtp(data: BaseEmailPayload & { otpCod
     ...data,
     subject: data.subject ?? "Verify your PayrollPilot account",
     html: data.html ?? renderTemplate("email-verification-otp", data as unknown as Record<string, unknown>)
+  });
+}
+
+export async function sendEmployeeWelcomeEmail(
+  data: BaseEmailPayload & { fullName?: string; employeeCode?: string; jobTitle?: string; department?: string }
+): Promise<{ success: boolean; skipped?: boolean; reason?: string }> {
+  return sendEmail({
+    ...data,
+    subject: data.subject ?? "Welcome — your PayrollPilot employee profile",
+    html: data.html ?? renderTemplate("employee-welcome", data as unknown as Record<string, unknown>)
   });
 }

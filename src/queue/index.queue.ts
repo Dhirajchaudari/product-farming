@@ -3,6 +3,7 @@ import { Queue, Worker } from "bullmq";
 import { getEnvConfig } from "../utils/env.config.js";
 import { processAuthAuditJob, type AuthAuditJobData } from "./workers/auth.worker.js";
 import {
+  processCommunicationEmail,
   sendCommunicationEmailWorker,
   type CommunicationEmailJobData
 } from "./workers/send-communication-email.worker.js";
@@ -104,10 +105,16 @@ export async function enqueueCommunicationEmail(
   payload: CommunicationEmailJobData
 ): Promise<void> {
   if (!communicationEmailQueue) {
+    console.warn("[email] queue unavailable, sending email directly");
+    try {
+      await processCommunicationEmail(payload);
+    } catch (error) {
+      console.error("[email] direct send failed", error);
+    }
     return;
   }
   await communicationEmailQueue.add(name, payload, {
-    delay: 1000,
+    delay: 500,
     removeOnComplete: true,
     removeOnFail: true
   });

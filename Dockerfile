@@ -19,5 +19,6 @@ RUN npm ci --omit=dev --no-audit --no-fund \
   && npm cache clean --force
 RUN npm run prisma:generate
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/src/utils/email/templates ./dist/src/utils/email/templates
 EXPOSE 3000
 CMD ["node", "dist/src/server.js"]

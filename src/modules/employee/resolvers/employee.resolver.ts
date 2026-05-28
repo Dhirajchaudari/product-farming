@@ -1,7 +1,9 @@
 import { Arg, Ctx, Mutation, Query, Resolver, UseMiddleware } from "type-graphql";
 
 import { isAuthenticated } from "../../../middlewares/authentication.js";
+import { enqueueCommunicationEmail } from "../../../queue/index.queue.js";
 import type Context from "../../../types/context.type.js";
+import { EmailTemplateType } from "../../../utils/constants/emails.constant.js";
 import { EmployeeService } from "../services/employee.service.js";
 import {
   CreateEmployeeInput,
@@ -58,7 +60,22 @@ export class EmployeeResolver {
     @Arg("input", () => CreateEmployeeInput) input: CreateEmployeeInput,
     @Ctx() _context: Context
   ): Promise<EmployeeType> {
-    return employeeService.create(input);
+    const employee = await employeeService.create(input);
+    try {
+      await enqueueCommunicationEmail("employee-welcome-email", {
+        type: EmailTemplateType.EMPLOYEE_WELCOME,
+        data: {
+          email: employee.email,
+          fullName: employee.fullName,
+          employeeCode: employee.employeeCode,
+          jobTitle: employee.jobTitle,
+          department: employee.department
+        }
+      });
+    } catch (error) {
+      console.error("[employee] welcome email enqueue failed", error);
+    }
+    return employee;
   }
 
   @Mutation(() => EmployeeType)
