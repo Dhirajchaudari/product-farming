@@ -9,7 +9,16 @@ export class EmployeeType {
   public fullName!: string;
 
   @Field(() => String)
+  public email!: string;
+
+  @Field(() => String)
+  public employeeCode!: string;
+
+  @Field(() => String)
   public jobTitle!: string;
+
+  @Field(() => String)
+  public department!: string;
 
   @Field(() => String)
   public country!: string;
@@ -19,6 +28,18 @@ export class EmployeeType {
 
   @Field(() => String)
   public currency!: string;
+
+  @Field(() => String)
+  public dateOfJoining!: string;
+
+  @Field(() => String)
+  public employmentType!: string;
+
+  @Field(() => String)
+  public status!: string;
+
+  @Field(() => String, { nullable: true })
+  public managerName?: string;
 
   @Field(() => Boolean)
   public isActive!: boolean;
@@ -69,7 +90,13 @@ export class CreateEmployeeInput {
   public fullName!: string;
 
   @Field(() => String)
+  public email!: string;
+
+  @Field(() => String)
   public jobTitle!: string;
+
+  @Field(() => String)
+  public department!: string;
 
   @Field(() => String)
   public country!: string;
@@ -79,6 +106,18 @@ export class CreateEmployeeInput {
 
   @Field(() => String)
   public currency!: string;
+
+  @Field(() => String)
+  public dateOfJoining!: string;
+
+  @Field(() => String, { nullable: true })
+  public employmentType?: string;
+
+  @Field(() => String, { nullable: true })
+  public status?: string;
+
+  @Field(() => String, { nullable: true })
+  public managerName?: string;
 }
 
 @InputType()
@@ -90,7 +129,13 @@ export class UpdateEmployeeInput {
   public fullName?: string;
 
   @Field(() => String, { nullable: true })
+  public email?: string;
+
+  @Field(() => String, { nullable: true })
   public jobTitle?: string;
+
+  @Field(() => String, { nullable: true })
+  public department?: string;
 
   @Field(() => String, { nullable: true })
   public country?: string;
@@ -100,6 +145,18 @@ export class UpdateEmployeeInput {
 
   @Field(() => String, { nullable: true })
   public currency?: string;
+
+  @Field(() => String, { nullable: true })
+  public dateOfJoining?: string;
+
+  @Field(() => String, { nullable: true })
+  public employmentType?: string;
+
+  @Field(() => String, { nullable: true })
+  public status?: string;
+
+  @Field(() => String, { nullable: true })
+  public managerName?: string;
 
   @Field(() => Boolean, { nullable: true })
   public isActive?: boolean;

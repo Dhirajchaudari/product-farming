@@ -31,15 +31,21 @@ describe("employee GraphQL CRUD", () => {
       headers: { cookie },
       payload: {
         query: `mutation($input: CreateEmployeeInput!) {
-          createEmployee(input: $input) { id fullName jobTitle country salary currency isActive }
+          createEmployee(input: $input) { id fullName email employeeCode jobTitle department country salary currency isActive }
         }`,
         variables: {
           input: {
             fullName: "Dhiraj Chaudhari",
+            email: "dhiraj@example.com",
             jobTitle: "HR Manager",
+            department: "People Operations",
             country: "India",
             salary: 120000,
-            currency: "INR"
+            currency: "INR",
+            dateOfJoining: "2024-01-15T00:00:00.000Z",
+            employmentType: "full_time",
+            status: "active",
+            managerName: "People Director"
           }
         }
       }
@@ -47,6 +53,7 @@ describe("employee GraphQL CRUD", () => {
 
     const createdId = (createResponse.json() as any).data.createEmployee.id as string;
     expect(createdId).toBeDefined();
+    expect((createResponse.json() as any).data.createEmployee.department).toBe("People Operations");
 
     const updateResponse = await app.inject({
       method: "POST",
@@ -110,10 +117,13 @@ describe("employee GraphQL CRUD", () => {
         variables: {
           input: {
             fullName: "A One",
+            email: "a.one@example.com",
             jobTitle: "Engineer",
+            department: "Engineering",
             country: "India",
             salary: 1000,
-            currency: "INR"
+            currency: "INR",
+            dateOfJoining: "2024-02-01T00:00:00.000Z"
           }
         }
       }
@@ -128,10 +138,13 @@ describe("employee GraphQL CRUD", () => {
         variables: {
           input: {
             fullName: "B Two",
+            email: "b.two@example.com",
             jobTitle: "Engineer",
+            department: "Engineering",
             country: "India",
             salary: 3000,
-            currency: "INR"
+            currency: "INR",
+            dateOfJoining: "2024-02-02T00:00:00.000Z"
           }
         }
       }
@@ -146,10 +159,13 @@ describe("employee GraphQL CRUD", () => {
         variables: {
           input: {
             fullName: "C Three",
+            email: "c.three@example.com",
             jobTitle: "Designer",
+            department: "Design",
             country: "India",
             salary: 2000,
-            currency: "INR"
+            currency: "INR",
+            dateOfJoining: "2024-02-03T00:00:00.000Z"
           }
         }
       }
@@ -176,7 +192,7 @@ describe("employee GraphQL CRUD", () => {
       url: "/graphql",
       headers: { cookie },
       payload: {
-        query: "query { employees { fullName jobTitle country salary } }"
+        query: "query { employees { fullName email employeeCode jobTitle department country salary dateOfJoining } }"
       }
     });
     const listDebug = (listDebugResponse.json() as any).data.employees as Array<{ jobTitle: string }>;

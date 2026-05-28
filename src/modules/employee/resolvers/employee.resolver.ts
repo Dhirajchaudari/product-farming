@@ -18,43 +18,48 @@ const employeeService = new EmployeeService();
 export class EmployeeResolver {
   @Query(() => [EmployeeType])
   @UseMiddleware(isAuthenticated)
-  public employees(): EmployeeType[] {
+  public async employees(): Promise<EmployeeType[]> {
     return employeeService.list();
   }
 
   @Query(() => EmployeeType, { nullable: true })
   @UseMiddleware(isAuthenticated)
-  public employeeById(@Arg("id", () => String) id: string): EmployeeType | null {
+  public async employeeById(@Arg("id", () => String) id: string): Promise<EmployeeType | null> {
     return employeeService.getById(id);
   }
 
   @Query(() => SalaryInsightsType)
   @UseMiddleware(isAuthenticated)
-  public salaryInsightsByCountry(@Arg("country", () => String) country: string): SalaryInsightsType {
+  public async salaryInsightsByCountry(@Arg("country", () => String) country: string): Promise<SalaryInsightsType> {
     return employeeService.getSalaryInsightsByCountry(country);
   }
 
   @Query(() => JobTitleSalaryInsightsType)
   @UseMiddleware(isAuthenticated)
-  public jobTitleSalaryInsights(@Arg("input", () => JobTitleSalaryInsightsInput) input: JobTitleSalaryInsightsInput): JobTitleSalaryInsightsType {
+  public async jobTitleSalaryInsights(
+    @Arg("input", () => JobTitleSalaryInsightsInput) input: JobTitleSalaryInsightsInput
+  ): Promise<JobTitleSalaryInsightsType> {
     return employeeService.getJobTitleSalaryInsights(input.country, input.jobTitle);
   }
 
   @Mutation(() => EmployeeType)
   @UseMiddleware(isAuthenticated)
-  public createEmployee(@Arg("input", () => CreateEmployeeInput) input: CreateEmployeeInput, @Ctx() _context: Context): EmployeeType {
+  public async createEmployee(
+    @Arg("input", () => CreateEmployeeInput) input: CreateEmployeeInput,
+    @Ctx() _context: Context
+  ): Promise<EmployeeType> {
     return employeeService.create(input);
   }
 
   @Mutation(() => EmployeeType)
   @UseMiddleware(isAuthenticated)
-  public updateEmployee(@Arg("input", () => UpdateEmployeeInput) input: UpdateEmployeeInput): EmployeeType {
+  public async updateEmployee(@Arg("input", () => UpdateEmployeeInput) input: UpdateEmployeeInput): Promise<EmployeeType> {
     return employeeService.update(input);
   }
 
   @Mutation(() => Boolean)
   @UseMiddleware(isAuthenticated)
-  public deleteEmployee(@Arg("id", () => String) id: string): boolean {
+  public async deleteEmployee(@Arg("id", () => String) id: string): Promise<boolean> {
     return employeeService.remove(id);
   }
 }
