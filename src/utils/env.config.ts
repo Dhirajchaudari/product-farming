@@ -14,6 +14,9 @@ export interface EnvConfig {
   smtpPassword?: string;
   emailFromAddress?: string;
   corsOrigins: string[];
+  otpLength: number;
+  otpTtlMinutes: number;
+  passwordMinLength: number;
 }
 
 let cachedConfig: EnvConfig | null = null;
@@ -61,7 +64,10 @@ export function getEnvConfig(): EnvConfig {
     smtpUser: process.env.SMTP_USER,
     smtpPassword: process.env.SMTP_PASSWORD,
     emailFromAddress: process.env.EMAIL_FROM_ADDRESS,
-    corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS)
+    corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
+    otpLength: Number(process.env.OTP_LENGTH ?? "6"),
+    otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES ?? "10"),
+    passwordMinLength: Number(process.env.PASSWORD_MIN_LENGTH ?? "8")
   };
 
   return cachedConfig;

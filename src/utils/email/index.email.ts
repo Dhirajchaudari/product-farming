@@ -68,5 +68,17 @@ function defaultHtml(title: string, data: unknown): string {
 }
 
 export async function sendUserOnboardingEmail(data: BaseEmailPayload): Promise<{ success: boolean; skipped?: boolean; reason?: string }> {
-  return sendEmail({ ...data, subject: data.subject ?? "Welcome to Product Farming", html: data.html ?? defaultHtml("Welcome", data) });
+  return sendEmail({
+    ...data,
+    subject: data.subject ?? "Welcome to PayrollPilot HR",
+    html: data.html ?? renderTemplate("user-onboarding", data as unknown as Record<string, unknown>)
+  });
+}
+
+export async function sendEmailVerificationOtp(data: BaseEmailPayload & { otpCode?: string }): Promise<{ success: boolean; skipped?: boolean; reason?: string }> {
+  return sendEmail({
+    ...data,
+    subject: data.subject ?? "Verify your PayrollPilot account",
+    html: data.html ?? renderTemplate("email-verification-otp", data as unknown as Record<string, unknown>)
+  });
 }

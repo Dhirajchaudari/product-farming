@@ -12,7 +12,7 @@ import { AUTH_SESSION_COOKIE } from "../auth.constants.js";
 import type { SessionUser } from "../interfaces/auth.types.js";
 import { UserRoleEnum } from "../interfaces/auth.types.js";
 import { AuthService } from "../services/auth.service.js";
-import { SessionUserType } from "../schema/auth.schema.js";
+import { AuthOperationResultType, SessionUserType } from "../schema/auth.schema.js";
 
 const env = getEnvConfig();
 const authService = new AuthService(env.nodeEnv === "test" ? null : getRedisClient());
@@ -42,7 +42,7 @@ export class AuthResolver {
     @Arg("email", () => String) email: string,
     @Arg("role", () => UserRoleEnum) role: UserRoleEnum
   ) {
-    const session = await authService.createSession(email, role);
+    const session = { ...(await authService.createSession(email, role)), firstLogin: false };
     const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
       ?? (context as unknown as { appReply?: FastifyReply }).appReply;
     if (!reply) {
@@ -60,16 +60,110 @@ export class AuthResolver {
       email: session.user.email,
       at: new Date().toISOString()
     });
-    await enqueueCommunicationEmail("auth-login-welcome-email", {
-      type: EmailTemplateType.USER_ONBOARDING,
+    if (session.firstLogin) {
+      await enqueueCommunicationEmail("auth-login-welcome-email", {
+        type: EmailTemplateType.USER_ONBOARDING,
+        data: {
+          userId: session.user.id,
+          email: session.user.email
+        }
+      });
+    }
+    return session.user;
+  }
+
+  @Mutation(() => SessionUserType)
+  public async loginWithPassword(
+    @Ctx() context: Context,
+    @Arg("email", () => String) email: string,
+    @Arg("password", () => String) password: string
+  ): Promise<SessionUser> {
+    const session = await authService.loginWithPassword(email, password);
+    const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
+      ?? (context as unknown as { appReply?: FastifyReply }).appReply;
+    if (!reply) {
+      throw new Error("CONTEXT_REPLY_MISSING");
+    }
+    reply.setCookie(AUTH_SESSION_COOKIE, session.sessionId, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: env.nodeEnv === "production"
+    });
+    await enqueueAuthAudit("auth-login-password", {
+      event: "login",
+      userId: session.user.id,
+      email: session.user.email,
+      at: new Date().toISOString()
+    });
+    if (session.firstLogin) {
+      await enqueueCommunicationEmail("auth-login-welcome-email", {
+        type: EmailTemplateType.USER_ONBOARDING,
+        data: {
+          userId: session.user.id,
+          email: session.user.email
+        }
+      });
+    }
+    return session.user;
+  }
+
+  @Mutation(() => AuthOperationResultType)
+  public async requestRegistrationOtp(
+    @Arg("email", () => String) email: string,
+    @Arg("role", () => UserRoleEnum, { nullable: true }) role?: UserRoleEnum
+  ): Promise<AuthOperationResultType> {
+    const otpCode = await authService.requestRegistrationOtp(
+      email,
+      role ?? UserRoleEnum.hr_manager,
+      env.otpLength,
+      env.otpTtlMinutes
+    );
+
+    await enqueueCommunicationEmail("registration-otp", {
+      type: EmailTemplateType.EMAIL_VERIFICATION_OTP,
       data: {
-        userId: session.user.id,
-        email: session.user.email,
-        subject: "Welcome to Product Farming",
-        html: `<p>Hi ${session.user.email}, your login is successful.</p>`
+        email,
+        otpCode
       }
     });
-    return session.user;
+
+    return {
+      success: true,
+      message: "OTP_SENT"
+    };
+  }
+
+  @Mutation(() => AuthOperationResultType)
+  public async verifyRegistrationOtp(
+    @Arg("email", () => String) email: string,
+    @Arg("otp", () => String) otp: string
+  ): Promise<AuthOperationResultType> {
+    const valid = await authService.verifyRegistrationOtp(email, otp);
+    return {
+      success: valid,
+      message: valid ? "OTP_VALID" : "OTP_INVALID_OR_EXPIRED"
+    };
+  }
+
+  @Mutation(() => AuthOperationResultType)
+  public async setupPassword(
+    @Arg("email", () => String) email: string,
+    @Arg("otp", () => String) otp: string,
+    @Arg("password", () => String) password: string
+  ): Promise<AuthOperationResultType> {
+    if (password.length < env.passwordMinLength) {
+      return {
+        success: false,
+        message: "PASSWORD_TOO_SHORT"
+      };
+    }
+
+    const success = await authService.setupPassword(email, otp, password);
+    return {
+      success,
+      message: success ? "PASSWORD_SET" : "OTP_INVALID_OR_EXPIRED"
+    };
   }
 
   @Mutation(() => Boolean)
