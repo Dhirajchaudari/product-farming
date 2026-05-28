@@ -10,6 +10,7 @@
     "dev": "tsx watch src/server.ts",
     "test:watch": "vitest",
     "lint": "tsc --noEmit -p tsconfig.json",
+    "seed:employees": "tsx src/scripts/seed-employees.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy"
