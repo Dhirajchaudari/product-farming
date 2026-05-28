@@ -33,6 +33,22 @@ base64 -w0 < .env.production
   - upstream name `product_farming_api_active`
 - Passwordless sudo for `nginx -t`, `systemctl reload nginx`, and writing snippet files
 
+## TLS with Certbot (for api.orbitalops.net)
+
+If HTTP is working but CI checks use HTTPS, ensure Certbot is configured on the VM:
+
+```bash
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d api.orbitalops.net
+```
+
+Validate:
+
+```bash
+curl -I https://api.orbitalops.net/health
+```
+
 ## Zero-downtime verification (built into deploy script)
 
 `script/deploy-bluegreen.sh` now includes a cutover window probe and fails deployment if health requests fail during that window.

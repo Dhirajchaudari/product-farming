@@ -58,7 +58,7 @@ wait_for_public_health() {
   local success=0
   local i
   for i in $(seq 1 60); do
-    if curl -fsS --connect-timeout 5 --max-time "$max_time" "$url" >/dev/null 2>&1; then
+    if curl -fsSL --connect-timeout 5 --max-time "$max_time" "$url" >/dev/null 2>&1; then
       success=$((success + 1))
       echo "Public health OK via ${url} (${success}/${required}, attempt ${i})"
       if [ "$success" -ge "$required" ]; then
@@ -95,7 +95,7 @@ assert_zero_downtime_window() {
     fi
 
     requests=$((requests + 1))
-    if ! curl -fsS --connect-timeout 3 "$url" >/dev/null 2>&1; then
+    if ! curl -fsSL --connect-timeout 3 --max-time 8 "$url" >/dev/null 2>&1; then
       failures=$((failures + 1))
     fi
     sleep "$interval_s"
