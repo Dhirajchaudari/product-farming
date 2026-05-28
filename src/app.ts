@@ -7,6 +7,7 @@ import { buildSchemaSync } from "type-graphql";
 
 import { AUTH_SESSION_COOKIE } from "./modules/auth/auth.constants.js";
 import { AuthResolver, resolveSessionUserFromCookie } from "./modules/auth/resolvers/auth.resolver.js";
+import { EmployeeResolver } from "./modules/employee/resolvers/employee.resolver.js";
 import { closeQueues, initializeQueues } from "./queue/index.queue.js";
 import { getEnvConfig } from "./utils/env.config.js";
 
@@ -27,7 +28,7 @@ export function buildApp(): FastifyInstance {
   void app.register(cookie);
 
   const gqlSchema = buildSchemaSync({
-    resolvers: [AuthResolver],
+    resolvers: [AuthResolver, EmployeeResolver],
     validate: false
   });
 
