@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit -p tsconfig.json",
     "seed:employees": "tsx src/scripts/seed-employees.ts",
     "seed:hr": "tsx src/scripts/seed-hr-user.ts",
+    "validate:env": "tsx src/scripts/validate-env.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy"
