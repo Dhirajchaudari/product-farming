@@ -24,10 +24,14 @@ jobs:
           username: ${{ secrets.DEV_VM_USER }}
           key: ${{ secrets.DEV_VM_SSH_PRIVATE_KEY }}
           command_timeout: 30m
+          request_pty: true
           envs: SERVER_ENV_B64,SERVER_PUBLIC_HEALTH_URL,SERVER_DEPLOY_BASE
           script_stop: false
           script: |
             set -euo pipefail
+            whoami
+            id
+            sudo -n true
             BASE="${SERVER_DEPLOY_BASE:-/home/ubuntu/apps/product-farming/server}"
             mkdir -p "$BASE"
             cd "$BASE"
