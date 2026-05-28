@@ -34,7 +34,11 @@ export class AuthResolver {
   }
 
   @Mutation(() => SessionUserType)
-  public async login(@Ctx() context: Context, @Arg("email") email: string, @Arg("role", () => UserRoleEnum) role: UserRoleEnum) {
+  public async login(
+    @Ctx() context: Context,
+    @Arg("email", () => String) email: string,
+    @Arg("role", () => UserRoleEnum) role: UserRoleEnum
+  ) {
     const session = await authService.createSession(email, role);
     const reply = (context as unknown as { reply?: FastifyReply; appReply?: FastifyReply }).reply
       ?? (context as unknown as { appReply?: FastifyReply }).appReply;

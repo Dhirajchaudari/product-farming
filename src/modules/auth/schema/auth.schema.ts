@@ -17,7 +17,7 @@ export class SessionUserType implements SessionUser {
   @Field(() => ID)
   public id!: string;
 
-  @Field()
+  @Field(() => String)
   public email!: string;
 
   @Field(() => UserRoleEnum)
