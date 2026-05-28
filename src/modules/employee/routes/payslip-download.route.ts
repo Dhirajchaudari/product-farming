@@ -44,7 +44,13 @@ export async function registerPayslipDownloadRoute(app: FastifyInstance): Promis
         if (message === "FORBIDDEN") {
           return reply.code(403).send({ error: message });
         }
-        return reply.code(502).send({ error: "PAYSLIP_DOWNLOAD_FAILED" });
+        if (message.startsWith("CLOUDINARY_FETCH_FAILED") || message === "CLOUDINARY_EMPTY_PDF") {
+          return reply.code(502).send({
+            error: "PAYSLIP_FILE_MISSING",
+            message: "Payslip file not found in storage. Ask HR to add the employee again or regenerate the payslip."
+          });
+        }
+        return reply.code(502).send({ error: "PAYSLIP_DOWNLOAD_FAILED", message });
       }
     }
   );
