@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { resolveDatabaseUrl, type ResolvedDatabaseUrl } from "./database-url.js";
+import { normalizeRedisUrl } from "./redis-url.js";
 
 function loadEnvFiles(): void {
   const cwd = process.cwd();
@@ -92,7 +93,7 @@ export function getEnvConfig(): EnvConfig {
     port: Number(process.env.PORT ?? "8000"),
     databaseUrl: database.connectionString,
     database,
-    redisUrl: getRequiredEnv("REDIS_URL"),
+    redisUrl: normalizeRedisUrl(getRequiredEnv("REDIS_URL")),
     jwtPublicKey: decodeBase64Key(getRequiredEnv("PUBLIC_KEY")),
     jwtPrivateKey: decodeBase64Key(getRequiredEnv("PRIVATE_KEY")),
     smtpUser: process.env.SMTP_USER,

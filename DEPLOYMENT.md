@@ -52,6 +52,20 @@ DATABASE_NAME=product_farming
 
 After updating secrets, redeploy. `/health` returns **503** when the database is unreachable so deploy fails fast with container logs.
 
+## Redis URL (fix `ENOENT //default:...@host:16542%22`)
+
+`REDIS_URL` must **not** be wrapped in quotes in `.env.production`:
+
+```env
+# Wrong
+REDIS_URL="redis://default:PASSWORD@redis-xxxxx:16542"
+
+# Correct
+REDIS_URL=redis://default:PASSWORD@redis-xxxxx:16542
+```
+
+A trailing `"` often appears as `%22` in logs and breaks ioredis.
+
 ## VM prerequisites
 
 - Docker installed and running
