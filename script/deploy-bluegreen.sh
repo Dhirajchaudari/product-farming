@@ -11,6 +11,7 @@ IMAGE_TAG="${PF_IMAGE_TAG:-latest}"
 
 BLUE_PORT="${PF_BLUE_PORT:-18081}"
 GREEN_PORT="${PF_GREEN_PORT:-28081}"
+APP_PORT="${PF_APP_PORT:-8000}"
 BLUE_CONTAINER="${PF_BLUE_CONTAINER:-product-farming-api-blue}"
 GREEN_CONTAINER="${PF_GREEN_CONTAINER:-product-farming-api-green}"
 
@@ -135,8 +136,8 @@ run_container() {
     --name "$container_name" \
     --restart unless-stopped \
     --env-file "$ENV_FILE" \
-    -e PORT=3000 \
-    -p "${publish_port}:3000" \
+    -e PORT="$APP_PORT" \
+    -p "${publish_port}:${APP_PORT}" \
     "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null
 }
 

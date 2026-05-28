@@ -60,3 +60,4 @@ Optional env flags:
 - `PF_ZERO_DOWNTIME_INTERVAL_SECONDS` (default: `0.2`)
 - `PF_PUBLIC_HEALTH_SUCCESS_COUNT` (default: `3`)
 - `PF_PUBLIC_HEALTH_MAX_TIME_SECONDS` (default: `8`)
+- `PF_APP_PORT` (default: `8000`)

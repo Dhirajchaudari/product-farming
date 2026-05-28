@@ -54,6 +54,7 @@ jobs:
             export PF_IMAGE_TAG='${{ github.sha }}'
             export PF_BLUE_PORT=18081
             export PF_GREEN_PORT=28081
+            export PF_APP_PORT=8000
             export PF_BLUE_CONTAINER=product-farming-api-blue
             export PF_GREEN_CONTAINER=product-farming-api-green
             export PF_NGINX_UPSTREAM_FILE=/etc/nginx/conf.d/product-farming-api-upstream.conf
