@@ -58,6 +58,8 @@ jobs:
             export PF_GREEN_CONTAINER=product-farming-api-green
             export PF_NGINX_UPSTREAM_FILE=/etc/nginx/conf.d/product-farming-api-upstream.conf
             export PF_NGINX_UPSTREAM_NAME=product_farming_api_active
+            export PF_PUBLIC_HEALTH_SUCCESS_COUNT=1
+            export PF_PUBLIC_HEALTH_MAX_TIME_SECONDS=8
             export PF_DRAIN_SECONDS=20
 
             bash script/deploy-bluegreen.sh

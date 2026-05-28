@@ -16,6 +16,7 @@ GREEN_CONTAINER="${PF_GREEN_CONTAINER:-product-farming-api-green}"
 
 PUBLIC_HEALTH_URL="${PF_PUBLIC_HEALTH_URL:-}"
 PUBLIC_HEALTH_SUCCESS_COUNT="${PF_PUBLIC_HEALTH_SUCCESS_COUNT:-3}"
+PUBLIC_HEALTH_MAX_TIME_SECONDS="${PF_PUBLIC_HEALTH_MAX_TIME_SECONDS:-8}"
 ZERO_DOWNTIME_CHECK="${PF_ZERO_DOWNTIME_CHECK:-1}"
 ZERO_DOWNTIME_DURATION_SECONDS="${PF_ZERO_DOWNTIME_DURATION_SECONDS:-30}"
 ZERO_DOWNTIME_INTERVAL_SECONDS="${PF_ZERO_DOWNTIME_INTERVAL_SECONDS:-0.2}"
@@ -53,21 +54,23 @@ wait_for_health() {
 wait_for_public_health() {
   local url="$1"
   local required="${2:-3}"
+  local max_time="${3:-8}"
   local success=0
   local i
   for i in $(seq 1 60); do
-    if curl -fsS --connect-timeout 5 "$url" >/dev/null 2>&1; then
+    if curl -fsS --connect-timeout 5 --max-time "$max_time" "$url" >/dev/null 2>&1; then
       success=$((success + 1))
-      echo "Public health OK via ${url} (${success}/${required})"
+      echo "Public health OK via ${url} (${success}/${required}, attempt ${i})"
       if [ "$success" -ge "$required" ]; then
         return 0
       fi
     else
       success=0
+      echo "Public health failed via ${url} (attempt ${i})"
     fi
     sleep 2
   done
-  echo "ERROR: public health check failed for ${url}" >&2
+  echo "ERROR: public health check failed for ${url} after 60 attempts" >&2
   return 1
 }
 
@@ -165,7 +168,7 @@ wait_for_health "$INACTIVE_PORT" 75
 write_upstream "$INACTIVE_PORT"
 
 if [ -n "$PUBLIC_HEALTH_URL" ]; then
-  wait_for_public_health "$PUBLIC_HEALTH_URL" "$PUBLIC_HEALTH_SUCCESS_COUNT"
+  wait_for_public_health "$PUBLIC_HEALTH_URL" "$PUBLIC_HEALTH_SUCCESS_COUNT" "$PUBLIC_HEALTH_MAX_TIME_SECONDS"
   if [ "$ZERO_DOWNTIME_CHECK" = "1" ]; then
     assert_zero_downtime_window "$PUBLIC_HEALTH_URL" "$ZERO_DOWNTIME_DURATION_SECONDS" "$ZERO_DOWNTIME_INTERVAL_SECONDS"
   fi

@@ -42,3 +42,5 @@ Optional env flags:
 - `PF_ZERO_DOWNTIME_CHECK` (default: `1`)
 - `PF_ZERO_DOWNTIME_DURATION_SECONDS` (default: `30`)
 - `PF_ZERO_DOWNTIME_INTERVAL_SECONDS` (default: `0.2`)
+- `PF_PUBLIC_HEALTH_SUCCESS_COUNT` (default: `3`)
+- `PF_PUBLIC_HEALTH_MAX_TIME_SECONDS` (default: `8`)
