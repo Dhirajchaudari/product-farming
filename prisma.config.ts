@@ -2,6 +2,10 @@ import "dotenv/config";
 
 import { defineConfig } from "prisma/config";
 
+/** Used only for `prisma generate` during Docker build when no env is loaded. */
+const BUILD_PLACEHOLDER_URL =
+  "postgresql://postgres:postgres@127.0.0.1:5432/product_farming?schema=public";
+
 function buildDatabaseUrl(): string {
   const direct = process.env.DATABASE_URL?.trim();
   if (direct) {
@@ -24,13 +28,7 @@ function buildDatabaseUrl(): string {
   return "";
 }
 
-const DATABASE_URL = buildDatabaseUrl();
-
-if (!DATABASE_URL) {
-  throw new Error(
-    "Missing DATABASE_URL or DATABASE_HOST/DATABASE_USER/DATABASE_NAME for Prisma migrations."
-  );
-}
+const DATABASE_URL = buildDatabaseUrl() || BUILD_PLACEHOLDER_URL;
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
