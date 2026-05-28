@@ -160,10 +160,10 @@ export class PayslipService {
     return rows.map((row) => this.mapRow(row));
   }
 
-  public async getDownloadUrl(
+  public async getAuthorizedPayslipForDownload(
     payslipId: string,
     sessionUser: SessionUser
-  ): Promise<{ url: string; fileName: string }> {
+  ): Promise<PayslipRecord> {
     const payslip = await this.getById(payslipId);
     if (!payslip) {
       throw new Error("PAYSLIP_NOT_FOUND");
@@ -177,6 +177,15 @@ export class PayslipService {
     } else if (sessionUser.role !== "hr_manager" && sessionUser.role !== "admin") {
       throw new Error("FORBIDDEN");
     }
+
+    return payslip;
+  }
+
+  public async getDownloadUrl(
+    payslipId: string,
+    sessionUser: SessionUser
+  ): Promise<{ url: string; fileName: string }> {
+    const payslip = await this.getAuthorizedPayslipForDownload(payslipId, sessionUser);
 
     if (this.useMemoryStore) {
       return { url: payslip.cloudinaryUrl, fileName: payslip.fileName };

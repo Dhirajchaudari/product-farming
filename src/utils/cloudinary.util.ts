@@ -23,6 +23,10 @@ function ensureCloudinary(): boolean {
 
 const PAYSLIP_FOLDER = "payrollpilot/payslips";
 
+function normalizePublicId(publicId: string): string {
+  return publicId.replace(/\.pdf$/i, "").replace(/^\/+/, "");
+}
+
 export async function uploadPayslipPdf(
   buffer: Buffer,
   publicId: string
@@ -32,13 +36,14 @@ export async function uploadPayslipPdf(
     return null;
   }
 
-  const fullPublicId = `${PAYSLIP_FOLDER}/${publicId}`;
+  const baseId = normalizePublicId(publicId);
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
+        folder: PAYSLIP_FOLDER,
+        public_id: baseId,
         resource_type: "raw",
-        public_id: fullPublicId,
         format: "pdf",
         overwrite: true,
         access_mode: "public"
@@ -48,10 +53,11 @@ export async function uploadPayslipPdf(
           reject(error ?? new Error("CLOUDINARY_UPLOAD_FAILED"));
           return;
         }
-        const signedUrl = getSignedPayslipDownloadUrl(result.public_id, `${publicId}.pdf`);
+        const storedId = result.public_id;
+        const fileName = `${baseId.split("/").pop() ?? baseId}.pdf`;
         resolve({
-          publicId: result.public_id,
-          url: signedUrl
+          publicId: storedId,
+          url: getSignedPayslipDownloadUrl(storedId, fileName)
         });
       }
     );
@@ -64,12 +70,37 @@ export function getSignedPayslipDownloadUrl(publicId: string, fileName: string):
     throw new Error("CLOUDINARY_NOT_CONFIGURED");
   }
 
-  return cloudinary.url(publicId, {
+  const id = normalizePublicId(publicId);
+  const safeFileName = fileName.replace(/[^\w.\-]+/g, "_");
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60;
+
+  return cloudinary.utils.private_download_url(id, "pdf", {
     resource_type: "raw",
     type: "upload",
-    secure: true,
-    sign_url: true,
-    flags: "attachment",
-    attachment: fileName
+    attachment: true,
+    expires_at: expiresAt,
+    ...(safeFileName ? { filename: safeFileName } : {})
   });
+}
+
+export async function fetchPayslipPdfBuffer(publicId: string, fileName: string): Promise<Buffer> {
+  const url = getSignedPayslipDownloadUrl(publicId, fileName);
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const fallbackUrl = cloudinary.url(normalizePublicId(publicId), {
+      resource_type: "raw",
+      type: "upload",
+      secure: true,
+      sign_url: true,
+      flags: `attachment:${fileName}`
+    });
+    const fallbackResponse = await fetch(fallbackUrl);
+    if (!fallbackResponse.ok) {
+      throw new Error(`CLOUDINARY_FETCH_FAILED_${response.status}`);
+    }
+    return Buffer.from(await fallbackResponse.arrayBuffer());
+  }
+
+  return Buffer.from(await response.arrayBuffer());
 }

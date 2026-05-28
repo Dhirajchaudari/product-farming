@@ -9,6 +9,7 @@ import { buildSchemaSync } from "type-graphql";
 import { AUTH_SESSION_COOKIE } from "./modules/auth/auth.constants.js";
 import { AuthResolver, resolveSessionUserFromCookie } from "./modules/auth/resolvers/auth.resolver.js";
 import { EmployeeResolver } from "./modules/employee/resolvers/employee.resolver.js";
+import { registerPayslipDownloadRoute } from "./modules/employee/routes/payslip-download.route.js";
 import { PortalResolver } from "./modules/employee/resolvers/portal.resolver.js";
 import { closeQueues, initializeQueues } from "./queue/index.queue.js";
 import { checkDatabaseConnection } from "./utils/prisma.connection.js";
@@ -61,6 +62,8 @@ export function buildApp(): FastifyInstance {
   });
 
   void app.register(cookie);
+
+  void registerPayslipDownloadRoute(app);
 
   const gqlSchema = buildSchemaSync({
     resolvers: [AuthResolver, EmployeeResolver, PortalResolver],
