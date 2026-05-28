@@ -10,6 +10,9 @@ export interface EnvConfig {
   redisUrl: string;
   jwtPublicKey: string;
   jwtPrivateKey: string;
+  smtpUser?: string;
+  smtpPassword?: string;
+  emailFromAddress?: string;
 }
 
 let cachedConfig: EnvConfig | null = null;
@@ -38,7 +41,10 @@ export function getEnvConfig(): EnvConfig {
     databaseUrl: getRequiredEnv("DATABASE_URL"),
     redisUrl: getRequiredEnv("REDIS_URL"),
     jwtPublicKey: decodeBase64Key(getRequiredEnv("PUBLIC_KEY")),
-    jwtPrivateKey: decodeBase64Key(getRequiredEnv("PRIVATE_KEY"))
+    jwtPrivateKey: decodeBase64Key(getRequiredEnv("PRIVATE_KEY")),
+    smtpUser: process.env.SMTP_USER,
+    smtpPassword: process.env.SMTP_PASSWORD,
+    emailFromAddress: process.env.EMAIL_FROM_ADDRESS
   };
 
   return cachedConfig;

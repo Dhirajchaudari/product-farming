@@ -3,8 +3,9 @@ import { Arg, Ctx, Mutation, Query, Resolver, UseMiddleware } from "type-graphql
 
 import { isAuthenticated } from "../../../middlewares/authentication.js";
 import { isAdmin } from "../../../middlewares/authorization.js";
-import { enqueueAuthAudit } from "../../../queue/index.queue.js";
+import { enqueueAuthAudit, enqueueCommunicationEmail } from "../../../queue/index.queue.js";
 import type Context from "../../../types/context.type.js";
+import { EmailTemplateType } from "../../../utils/constants/emails.constant.js";
 import { getEnvConfig } from "../../../utils/env.config.js";
 import { getRedisClient } from "../../../utils/redis.connection.js";
 import { AUTH_SESSION_COOKIE } from "../auth.constants.js";
@@ -58,6 +59,15 @@ export class AuthResolver {
       userId: session.user.id,
       email: session.user.email,
       at: new Date().toISOString()
+    });
+    await enqueueCommunicationEmail("auth-login-welcome-email", {
+      type: EmailTemplateType.USER_ONBOARDING,
+      data: {
+        userId: session.user.id,
+        email: session.user.email,
+        subject: "Welcome to Product Farming",
+        html: `<p>Hi ${session.user.email}, your login is successful.</p>`
+      }
     });
     return session.user;
   }
