@@ -13,6 +13,7 @@ export interface EnvConfig {
   smtpUser?: string;
   smtpPassword?: string;
   emailFromAddress?: string;
+  corsOrigins: string[];
 }
 
 let cachedConfig: EnvConfig | null = null;
@@ -27,6 +28,20 @@ function getRequiredEnv(name: string): string {
 
 function decodeBase64Key(value: string): string {
   return Buffer.from(value, "base64").toString("utf8");
+}
+
+function parseCorsOrigins(value: string | undefined): string[] {
+  if (!value) {
+    return [
+      "http://localhost:3000",
+      "https://app.orbitalops.net",
+      "https://www.app.orbitalops.net"
+    ];
+  }
+  return value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 }
 
 export function getEnvConfig(): EnvConfig {
@@ -44,7 +59,8 @@ export function getEnvConfig(): EnvConfig {
     jwtPrivateKey: decodeBase64Key(getRequiredEnv("PRIVATE_KEY")),
     smtpUser: process.env.SMTP_USER,
     smtpPassword: process.env.SMTP_PASSWORD,
-    emailFromAddress: process.env.EMAIL_FROM_ADDRESS
+    emailFromAddress: process.env.EMAIL_FROM_ADDRESS,
+    corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS)
   };
 
   return cachedConfig;

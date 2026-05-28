@@ -2,6 +2,7 @@ import "reflect-metadata";
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
+import cors from "@fastify/cors";
 import mercurius from "mercurius";
 import { buildSchemaSync } from "type-graphql";
 
@@ -23,6 +24,21 @@ export function buildApp(): FastifyInstance {
       service: "product-farming-server",
       timestamp: new Date().toISOString()
     };
+  });
+
+  void app.register(cors, {
+    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (env.corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("CORS_ORIGIN_NOT_ALLOWED"), false);
+    }
   });
 
   void app.register(cookie);
