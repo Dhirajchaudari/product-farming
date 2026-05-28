@@ -23,7 +23,7 @@ export class AuthService {
     const sessionId = randomUUID();
 
     if (this.redis) {
-      await this.redis.connect();
+      await this.ensureRedisConnected();
       await this.redis.set(this.toKey(sessionId), JSON.stringify(user), "EX", SESSION_TTL_SECONDS);
     } else {
       this.memoryStore.set(sessionId, user);
@@ -38,7 +38,7 @@ export class AuthService {
     }
 
     if (this.redis) {
-      await this.redis.connect();
+      await this.ensureRedisConnected();
       const payload = await this.redis.get(this.toKey(sessionId));
       if (!payload) {
         return null;
@@ -55,7 +55,7 @@ export class AuthService {
     }
 
     if (this.redis) {
-      await this.redis.connect();
+      await this.ensureRedisConnected();
       await this.redis.del(this.toKey(sessionId));
       return;
     }
@@ -65,5 +65,16 @@ export class AuthService {
 
   private toKey(sessionId: string): string {
     return `auth:session:${sessionId}`;
+  }
+
+  private async ensureRedisConnected(): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
+    // ioredis status can be one of: wait, connecting, connect, ready, close, end, reconnecting
+    if (this.redis.status === "wait" || this.redis.status === "end") {
+      await this.redis.connect();
+    }
   }
 }

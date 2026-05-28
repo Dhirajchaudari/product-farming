@@ -34,6 +34,7 @@ function parseCorsOrigins(value: string | undefined): string[] {
   if (!value) {
     return [
       "http://localhost:3000",
+      "http://localhost:3001",
       "https://app.orbitalops.net",
       "https://www.app.orbitalops.net"
     ];
