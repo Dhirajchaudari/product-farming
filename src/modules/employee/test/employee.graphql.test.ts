@@ -86,6 +86,40 @@ describe("employee GraphQL CRUD", () => {
 
     expect((listResponse.json() as any).data.employees.length).toBeGreaterThan(0);
 
+    const pageResponse = await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: `query($input: EmployeeListInput) {
+          employeesPage(input: $input) {
+            totalCount
+            page
+            pageSize
+            totalPages
+            items { id fullName department status }
+          }
+        }`,
+        variables: {
+          input: {
+            search: "dhiraj",
+            department: "People Operations",
+            status: "active",
+            page: 1,
+            pageSize: 5
+          }
+        }
+      }
+    });
+
+    expect((pageResponse.json() as any).data.employeesPage).toMatchObject({
+      totalCount: 1,
+      page: 1,
+      pageSize: 5,
+      totalPages: 1
+    });
+    expect((pageResponse.json() as any).data.employeesPage.items[0].fullName).toBe("Dhiraj Chaudhari");
+
     const deleteResponse = await app.inject({
       method: "POST",
       url: "/graphql",

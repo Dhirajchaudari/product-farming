@@ -5,6 +5,8 @@ import type Context from "../../../types/context.type.js";
 import { EmployeeService } from "../services/employee.service.js";
 import {
   CreateEmployeeInput,
+  EmployeeListInput,
+  EmployeeListPageType,
   EmployeeType,
   JobTitleSalaryInsightsInput,
   JobTitleSalaryInsightsType,
@@ -20,6 +22,14 @@ export class EmployeeResolver {
   @UseMiddleware(isAuthenticated)
   public async employees(): Promise<EmployeeType[]> {
     return employeeService.list();
+  }
+
+  @Query(() => EmployeeListPageType)
+  @UseMiddleware(isAuthenticated)
+  public async employeesPage(
+    @Arg("input", () => EmployeeListInput, { nullable: true }) input?: EmployeeListInput
+  ): Promise<EmployeeListPageType> {
+    return employeeService.listPage(input ?? {});
   }
 
   @Query(() => EmployeeType, { nullable: true })

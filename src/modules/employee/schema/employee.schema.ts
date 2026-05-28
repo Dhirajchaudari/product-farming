@@ -84,6 +84,24 @@ export class JobTitleSalaryInsightsType {
   public employeeCount!: number;
 }
 
+@ObjectType()
+export class EmployeeListPageType {
+  @Field(() => [EmployeeType])
+  public items!: EmployeeType[];
+
+  @Field(() => Number)
+  public totalCount!: number;
+
+  @Field(() => Number)
+  public page!: number;
+
+  @Field(() => Number)
+  public pageSize!: number;
+
+  @Field(() => Number)
+  public totalPages!: number;
+}
+
 @InputType()
 export class CreateEmployeeInput {
   @Field(() => String)
@@ -169,4 +187,22 @@ export class JobTitleSalaryInsightsInput {
 
   @Field(() => String)
   public jobTitle!: string;
+}
+
+@InputType()
+export class EmployeeListInput {
+  @Field(() => String, { nullable: true })
+  public search?: string;
+
+  @Field(() => String, { nullable: true })
+  public department?: string;
+
+  @Field(() => String, { nullable: true })
+  public status?: string;
+
+  @Field(() => Number, { nullable: true })
+  public page?: number;
+
+  @Field(() => Number, { nullable: true })
+  public pageSize?: number;
 }

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { getEnvConfig } from "../../../utils/env.config.js";
 import { getPrismaClient } from "../../../utils/prisma.connection.js";
-import type { EmployeeRecord } from "../interfaces/employee.types.js";
+import type { EmployeeListFilters, EmployeeListPage, EmployeeRecord } from "../interfaces/employee.types.js";
 import type { CreateEmployeeInput, UpdateEmployeeInput } from "../schema/employee.schema.js";
 
 export class EmployeeService {
@@ -107,6 +107,72 @@ export class EmployeeService {
     }
     const rows = await getPrismaClient().employee.findMany({ orderBy: { createdAt: "desc" } });
     return rows.map((row) => this.mapEmployeeRecord(row as never));
+  }
+
+  public async listPage(filters: EmployeeListFilters = {}): Promise<EmployeeListPage> {
+    const page = Math.max(1, filters.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 10));
+    const search = filters.search?.trim();
+    const department = filters.department?.trim();
+    const status = filters.status?.trim();
+
+    if (this.useMemoryStore) {
+      let rows = Array.from(this.employees.values());
+      if (search) {
+        const normalizedSearch = this.normalize(search);
+        rows = rows.filter((row) => {
+          return this.normalize(row.fullName).includes(normalizedSearch)
+            || this.normalize(row.employeeCode).includes(normalizedSearch)
+            || this.normalize(row.jobTitle).includes(normalizedSearch)
+            || this.normalize(row.country).includes(normalizedSearch);
+        });
+      }
+      if (department) {
+        const normalizedDepartment = this.normalize(department);
+        rows = rows.filter((row) => this.normalize(row.department) === normalizedDepartment);
+      }
+      if (status) {
+        const normalizedStatus = this.normalize(status);
+        rows = rows.filter((row) => this.normalize(row.status) === normalizedStatus);
+      }
+      const totalCount = rows.length;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      const safePage = Math.min(page, totalPages);
+      const start = (safePage - 1) * pageSize;
+      const items = rows.slice(start, start + pageSize);
+      return { items, totalCount, page: safePage, pageSize, totalPages };
+    }
+
+    const where = {
+      ...(search ? {
+        OR: [
+          { fullName: { contains: search, mode: "insensitive" as const } },
+          { employeeCode: { contains: search, mode: "insensitive" as const } },
+          { jobTitle: { contains: search, mode: "insensitive" as const } },
+          { country: { contains: search, mode: "insensitive" as const } }
+        ]
+      } : {}),
+      ...(department ? { department: { equals: department, mode: "insensitive" as const } } : {}),
+      ...(status ? { status: { equals: status, mode: "insensitive" as const } } : {})
+    };
+    const prisma = getPrismaClient();
+    const totalCount = await prisma.employee.count({ where });
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const skip = (safePage - 1) * pageSize;
+    const rows = await prisma.employee.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize
+    });
+    return {
+      items: rows.map((row) => this.mapEmployeeRecord(row as never)),
+      totalCount,
+      page: safePage,
+      pageSize,
+      totalPages
+    };
   }
 
   public async getById(id: string): Promise<EmployeeRecord | null> {

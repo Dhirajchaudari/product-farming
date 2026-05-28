@@ -16,3 +16,19 @@ export interface EmployeeRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface EmployeeListFilters {
+  search?: string;
+  department?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface EmployeeListPage {
+  items: EmployeeRecord[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
