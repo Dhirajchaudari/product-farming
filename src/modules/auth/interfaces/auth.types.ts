@@ -1,5 +1,11 @@
+export type UserRole = "admin" | "hr_manager" | "employee";
+
 export interface SessionUser {
   id: string;
   email: string;
-  role: "admin" | "hr_manager" | "employee";
+  role: UserRole;
+}
+
+export interface AuthContext {
+  sessionUser: SessionUser | null;
 }

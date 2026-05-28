@@ -8,11 +8,12 @@ describe("auth module scaffold", () => {
     expect(authModule.name).toBe("auth");
   });
 
-  it("creates a default session user shape", () => {
+  it("creates and resolves a session user", async () => {
     const authService = new AuthService();
-    const user = authService.buildSessionUser("hr@product-farming.test");
+    const session = await authService.createSession("hr@product-farming.test", "hr_manager");
+    const user = await authService.resolveSession(session.sessionId);
 
-    expect(user.email).toBe("hr@product-farming.test");
-    expect(user.role).toBe("hr_manager");
+    expect(user?.email).toBe("hr@product-farming.test");
+    expect(user?.role).toBe("hr_manager");
   });
 });
