@@ -30,6 +30,39 @@ export class EmployeeType {
   public updatedAt!: string;
 }
 
+@ObjectType()
+export class SalaryInsightsType {
+  @Field(() => String)
+  public country!: string;
+
+  @Field(() => Number)
+  public minimumSalary!: number;
+
+  @Field(() => Number)
+  public maximumSalary!: number;
+
+  @Field(() => Number)
+  public averageSalary!: number;
+
+  @Field(() => Number)
+  public employeeCount!: number;
+}
+
+@ObjectType()
+export class JobTitleSalaryInsightsType {
+  @Field(() => String)
+  public country!: string;
+
+  @Field(() => String)
+  public jobTitle!: string;
+
+  @Field(() => Number)
+  public averageSalary!: number;
+
+  @Field(() => Number)
+  public employeeCount!: number;
+}
+
 @InputType()
 export class CreateEmployeeInput {
   @Field(() => String)
@@ -70,4 +103,13 @@ export class UpdateEmployeeInput {
 
   @Field(() => Boolean, { nullable: true })
   public isActive?: boolean;
+}
+
+@InputType()
+export class JobTitleSalaryInsightsInput {
+  @Field(() => String)
+  public country!: string;
+
+  @Field(() => String)
+  public jobTitle!: string;
 }

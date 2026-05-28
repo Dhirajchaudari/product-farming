@@ -91,4 +91,117 @@ describe("employee GraphQL CRUD", () => {
 
     expect((deleteResponse.json() as any).data.deleteEmployee).toBe(true);
   });
+
+  it("returns salary insights by country and by job title", async () => {
+    const app = buildApp();
+    apps.push(app);
+    const cookie = await loginAndGetCookie(app);
+
+    const createMutation = `mutation($input: CreateEmployeeInput!) {
+      createEmployee(input: $input) { id }
+    }`;
+
+    await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: createMutation,
+        variables: {
+          input: {
+            fullName: "A One",
+            jobTitle: "Engineer",
+            country: "India",
+            salary: 1000,
+            currency: "INR"
+          }
+        }
+      }
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: createMutation,
+        variables: {
+          input: {
+            fullName: "B Two",
+            jobTitle: "Engineer",
+            country: "India",
+            salary: 3000,
+            currency: "INR"
+          }
+        }
+      }
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: createMutation,
+        variables: {
+          input: {
+            fullName: "C Three",
+            jobTitle: "Designer",
+            country: "India",
+            salary: 2000,
+            currency: "INR"
+          }
+        }
+      }
+    });
+
+    const countryInsights = await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: "query { salaryInsightsByCountry(country: \"India\") { minimumSalary maximumSalary averageSalary employeeCount } }"
+      }
+    });
+
+    expect((countryInsights.json() as any).data.salaryInsightsByCountry).toMatchObject({
+      minimumSalary: 1000,
+      maximumSalary: 3000,
+      averageSalary: 2000,
+      employeeCount: 3
+    });
+
+    const listDebugResponse = await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: "query { employees { fullName jobTitle country salary } }"
+      }
+    });
+    const listDebug = (listDebugResponse.json() as any).data.employees as Array<{ jobTitle: string }>;
+    expect(listDebug.some((row) => row.jobTitle === "Engineer")).toBe(true);
+
+    const jobTitleInsights = await app.inject({
+      method: "POST",
+      url: "/graphql",
+      headers: { cookie },
+      payload: {
+        query: `query($input: JobTitleSalaryInsightsInput!) {
+          jobTitleSalaryInsights(input: $input) { averageSalary employeeCount }
+        }`,
+        variables: {
+          input: {
+            country: "India",
+            jobTitle: "Engineer"
+          }
+        }
+      }
+    });
+
+    expect((jobTitleInsights.json() as any).data.jobTitleSalaryInsights).toMatchObject({
+      averageSalary: 2000,
+      employeeCount: 2
+    });
+  });
 });
