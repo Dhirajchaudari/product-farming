@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Employee {
+  id        String   @id @default(uuid())
+  fullName  String
+  jobTitle  String
+  country   String
+  salary    Decimal  @db.Decimal(12, 2)
+  currency  String   @db.VarChar(3)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([country])
+  @@index([country, jobTitle])
+}
