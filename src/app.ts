@@ -8,7 +8,8 @@ export function buildApp(): FastifyInstance {
   app.get("/health", async () => {
     return {
       status: "ok",
-      service: "product-farming-server"
+      service: "product-farming-server",
+      timestamp: new Date().toISOString()
     };
   });
 

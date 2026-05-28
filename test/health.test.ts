@@ -19,9 +19,12 @@ describe("GET /health", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
+    const body = response.json();
+    expect(body).toMatchObject({
       status: "ok",
       service: "product-farming-server"
     });
+    expect(typeof body.timestamp).toBe("string");
+    expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
   });
 });
