@@ -9,7 +9,10 @@ export function getRedisClient(): Redis {
     const { redisUrl } = getEnvConfig();
     redisClient = new Redis(redisUrl, {
       lazyConnect: true,
-      maxRetriesPerRequest: 1
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      connectTimeout: 10000,
+      retryStrategy: (attempt: number) => Math.min(attempt * 200, 2000)
     });
   }
   return redisClient;

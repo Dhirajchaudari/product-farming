@@ -136,8 +136,10 @@ export class AuthService {
     const sessionId = randomUUID();
 
     if (this.redis) {
-      await this.ensureRedisConnected();
-      await this.redis.set(this.toKey(sessionId), JSON.stringify(user), "EX", SESSION_TTL_SECONDS);
+      const savedToRedis = await this.tryRedisSet(sessionId, user);
+      if (!savedToRedis) {
+        this.memoryStore.set(sessionId, user);
+      }
     } else {
       this.memoryStore.set(sessionId, user);
     }
@@ -151,12 +153,11 @@ export class AuthService {
     }
 
     if (this.redis) {
-      await this.ensureRedisConnected();
-      const payload = await this.redis.get(this.toKey(sessionId));
-      if (!payload) {
-        return null;
+      const payload = await this.tryRedisGet(sessionId);
+      if (payload) {
+        return JSON.parse(payload) as SessionUser;
       }
-      return JSON.parse(payload) as SessionUser;
+      return this.memoryStore.get(sessionId) ?? null;
     }
 
     return this.memoryStore.get(sessionId) ?? null;
@@ -168,8 +169,8 @@ export class AuthService {
     }
 
     if (this.redis) {
-      await this.ensureRedisConnected();
-      await this.redis.del(this.toKey(sessionId));
+      await this.tryRedisDel(sessionId);
+      this.memoryStore.delete(sessionId);
       return;
     }
 
@@ -195,5 +196,49 @@ export class AuthService {
     if (this.redis.status === "wait" || this.redis.status === "end") {
       await this.redis.connect();
     }
+  }
+
+  private async tryRedisSet(sessionId: string, user: SessionUser): Promise<boolean> {
+    if (!this.redis) {
+      return false;
+    }
+    try {
+      await this.ensureRedisConnected();
+      await this.redis.set(this.toKey(sessionId), JSON.stringify(user), "EX", SESSION_TTL_SECONDS);
+      return true;
+    } catch (error) {
+      this.logRedisWarning("set", error);
+      return false;
+    }
+  }
+
+  private async tryRedisGet(sessionId: string): Promise<string | null> {
+    if (!this.redis) {
+      return null;
+    }
+    try {
+      await this.ensureRedisConnected();
+      return await this.redis.get(this.toKey(sessionId));
+    } catch (error) {
+      this.logRedisWarning("get", error);
+      return null;
+    }
+  }
+
+  private async tryRedisDel(sessionId: string): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+    try {
+      await this.ensureRedisConnected();
+      await this.redis.del(this.toKey(sessionId));
+    } catch (error) {
+      this.logRedisWarning("del", error);
+    }
+  }
+
+  private logRedisWarning(operation: string, error: unknown): void {
+    const details = error instanceof Error ? error.message : String(error);
+    console.warn(`[auth] redis ${operation} failed, using memory fallback: ${details}`);
   }
 }
