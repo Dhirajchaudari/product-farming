@@ -1,12 +1,7 @@
 import { Field, ID, ObjectType, registerEnumType } from "type-graphql";
 
 import type { SessionUser, UserRole } from "../interfaces/auth.types.js";
-
-export enum UserRoleEnum {
-  admin = "admin",
-  hr_manager = "hr_manager",
-  employee = "employee"
-}
+import { UserRoleEnum } from "../interfaces/auth.types.js";
 
 registerEnumType(UserRoleEnum, {
   name: "UserRole"

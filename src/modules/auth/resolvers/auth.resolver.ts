@@ -8,8 +8,9 @@ import { getEnvConfig } from "../../../utils/env.config.js";
 import { getRedisClient } from "../../../utils/redis.connection.js";
 import { AUTH_SESSION_COOKIE } from "../auth.constants.js";
 import type { SessionUser } from "../interfaces/auth.types.js";
+import { UserRoleEnum } from "../interfaces/auth.types.js";
 import { AuthService } from "../services/auth.service.js";
-import { SessionUserType, UserRoleEnum } from "../schema/auth.schema.js";
+import { SessionUserType } from "../schema/auth.schema.js";
 
 const env = getEnvConfig();
 const authService = new AuthService(env.nodeEnv === "test" ? null : getRedisClient());
