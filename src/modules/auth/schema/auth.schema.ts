@@ -1,24 +1,25 @@
-export const authTypeDefs = /* GraphQL */ `
-  enum UserRole {
-    admin
-    hr_manager
-    employee
-  }
+import { Field, ID, ObjectType, registerEnumType } from "type-graphql";
 
-  type SessionUser {
-    id: ID!
-    email: String!
-    role: UserRole!
-  }
+import type { SessionUser, UserRole } from "../interfaces/auth.types.js";
 
-  type Query {
-    authHealth: String!
-    me: SessionUser
-    adminPing: String
-  }
+export enum UserRoleEnum {
+  admin = "admin",
+  hr_manager = "hr_manager",
+  employee = "employee"
+}
 
-  type Mutation {
-    login(email: String!, role: UserRole!): SessionUser!
-    logout: Boolean!
-  }
-`;
+registerEnumType(UserRoleEnum, {
+  name: "UserRole"
+});
+
+@ObjectType()
+export class SessionUserType implements SessionUser {
+  @Field(() => ID)
+  public id!: string;
+
+  @Field()
+  public email!: string;
+
+  @Field(() => UserRoleEnum)
+  public role!: UserRole;
+}

@@ -1,10 +1,12 @@
+import "reflect-metadata";
+
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
 import mercurius from "mercurius";
+import { buildSchemaSync } from "type-graphql";
 
 import { AUTH_SESSION_COOKIE } from "./modules/auth/auth.constants.js";
-import { authResolvers, resolveSessionUserFromCookie } from "./modules/auth/resolvers/auth.resolver.js";
-import { authTypeDefs } from "./modules/auth/schema/auth.schema.js";
+import { AuthResolver, resolveSessionUserFromCookie } from "./modules/auth/resolvers/auth.resolver.js";
 import { getEnvConfig } from "./utils/env.config.js";
 
 export function buildApp(): FastifyInstance {
@@ -23,9 +25,13 @@ export function buildApp(): FastifyInstance {
 
   void app.register(cookie);
 
+  const gqlSchema = buildSchemaSync({
+    resolvers: [AuthResolver],
+    validate: false
+  });
+
   void app.register(mercurius as any, {
-    schema: authTypeDefs,
-    resolvers: authResolvers as any,
+    schema: gqlSchema,
     graphiql: env.nodeEnv !== "production",
     path: "/graphql",
     context: async (request: FastifyRequest, reply: FastifyReply) => {
@@ -34,6 +40,7 @@ export function buildApp(): FastifyInstance {
       return {
         request,
         reply,
+        appReply: reply,
         sessionId,
         sessionUser
       };
