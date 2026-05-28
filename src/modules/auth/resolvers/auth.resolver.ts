@@ -3,8 +3,11 @@ import type { FastifyReply } from "fastify";
 import { AUTH_SESSION_COOKIE } from "../auth.constants.js";
 import type { SessionUser, UserRole } from "../interfaces/auth.types.js";
 import { AuthService } from "../services/auth.service.js";
+import { getEnvConfig } from "../../../utils/env.config.js";
+import { getRedisClient } from "../../../utils/redis.connection.js";
 
-const authService = new AuthService();
+const env = getEnvConfig();
+const authService = new AuthService(env.nodeEnv === "test" ? null : getRedisClient());
 
 function getRequiredUser(context: { sessionUser?: SessionUser | null }): SessionUser {
   if (!context.sessionUser) {
@@ -26,7 +29,7 @@ function setSessionCookie(reply: FastifyReply, sessionId: string): void {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production"
+    secure: env.nodeEnv === "production"
   });
 }
 

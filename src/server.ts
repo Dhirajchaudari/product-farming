@@ -1,8 +1,10 @@
 import { buildApp } from "./app.js";
+import { getEnvConfig } from "./utils/env.config.js";
 
 const app = buildApp();
-const port = Number(process.env.PORT ?? "3000");
-const host = process.env.HOST ?? "0.0.0.0";
+const env = getEnvConfig();
+const port = env.port;
+const host = env.host;
 
 async function start(): Promise<void> {
   try {

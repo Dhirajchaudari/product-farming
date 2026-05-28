@@ -10,8 +10,8 @@ export class AuthService {
   private readonly redis: Redis | null;
   private readonly memoryStore = new Map<string, SessionUser>();
 
-  public constructor(redisUrl: string | undefined = process.env.REDIS_URL) {
-    this.redis = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : null;
+  public constructor(redisClient: Redis | null = null) {
+    this.redis = redisClient;
   }
 
   public async createSession(email: string, role: UserRole): Promise<{ sessionId: string; user: SessionUser }> {

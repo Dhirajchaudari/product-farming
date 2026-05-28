@@ -5,8 +5,10 @@ import mercurius from "mercurius";
 import { AUTH_SESSION_COOKIE } from "./modules/auth/auth.constants.js";
 import { authResolvers, resolveSessionUserFromCookie } from "./modules/auth/resolvers/auth.resolver.js";
 import { authTypeDefs } from "./modules/auth/schema/auth.schema.js";
+import { getEnvConfig } from "./utils/env.config.js";
 
 export function buildApp(): FastifyInstance {
+  const env = getEnvConfig();
   const app = Fastify({
     logger: true
   });
@@ -24,7 +26,7 @@ export function buildApp(): FastifyInstance {
   void app.register(mercurius as any, {
     schema: authTypeDefs,
     resolvers: authResolvers as any,
-    graphiql: process.env.NODE_ENV !== "production",
+    graphiql: env.nodeEnv !== "production",
     path: "/graphql",
     context: async (request: FastifyRequest, reply: FastifyReply) => {
       const sessionId = request.cookies[AUTH_SESSION_COOKIE];
